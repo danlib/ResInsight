@@ -1535,7 +1535,7 @@ void RimEclipseView::defineUiTreeOrdering(caf::PdmUiTreeOrdering& uiTreeOrdering
     CVF_ASSERT(project);
     RimOilField* oilfield = project->activeOilField();
     
-    if (oilfield && oilfield->fractureDefinitionCollection().notNull())
+    if (oilfield && oilfield->fractureDefinitionCollection())
     {
         if (!oilfield->fractureDefinitionCollection()->fractureTemplates().empty())
         {

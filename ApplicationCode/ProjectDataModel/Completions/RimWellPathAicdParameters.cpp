@@ -154,11 +154,10 @@ std::array<double, AICD_NUM_PARAMS> RimWellPathAicdParameters::doubleValues() co
 //--------------------------------------------------------------------------------------------------
 void RimWellPathAicdParameters::defineUiOrdering(QString uiConfigName, caf::PdmUiOrdering& uiOrdering)
 {
-    caf::PdmUiGroup* requiredGroup = uiOrdering.addNewGroup("Required Parameters");
-    requiredGroup->add(&m_deviceOpen);
+    uiOrdering.add(&m_deviceOpen);
     for (int i = 0; i < (int)AICD_NUM_REQ_PARAMS; ++i)
     {
-        requiredGroup->add(&m_aicdParameterFields[(AICDParameters) i]);
+        uiOrdering.add(&m_aicdParameterFields[(AICDParameters) i]);
     }
     
     caf::PdmUiGroup* additionalGroup = uiOrdering.addNewGroup("Additional Parameters");

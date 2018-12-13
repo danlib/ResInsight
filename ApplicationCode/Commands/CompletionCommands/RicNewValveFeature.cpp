@@ -18,7 +18,7 @@ CAF_CMD_SOURCE_INIT(RicNewValveFeature, "RicNewValveFeature");
 bool RicNewValveFeature::isCommandEnabled()
 {
     const RimPerforationInterval* perfInterval = caf::SelectionManager::instance()->selectedItemOfType<RimPerforationInterval>();
-    return perfInterval != nullptr && RiaApplication::enableDevelopmentFeatures();
+    return perfInterval != nullptr;
 }
 
 //--------------------------------------------------------------------------------------------------
