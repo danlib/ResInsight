@@ -110,7 +110,11 @@ private:
     static void assignSuperValveCompletions(std::vector<std::shared_ptr<RicMswSegment>>&      mainBoreSegments,
                                             const std::vector<const RimPerforationInterval*>& perforationIntervals);
 
-    static void assignValveContributionsToSuperValves(const std::vector<std::shared_ptr<RicMswSegment>>& mainBoreSegments,
+    static void assignValveContributionsToSuperICVs(const std::vector<std::shared_ptr<RicMswSegment>>& mainBoreSegments,
+                                                    const std::vector<const RimPerforationInterval*>& perforationIntervals,
+                                                    RiaEclipseUnitTools::UnitSystem                   unitSystem);
+
+    static void assignValveContributionsToSuperICDsOrAICDs(const std::vector<std::shared_ptr<RicMswSegment>>& mainBoreSegments,
                                                       const std::vector<const RimPerforationInterval*>&  perforationIntervals,
                                                       RiaEclipseUnitTools::UnitSystem                    unitSystem);
 

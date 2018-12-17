@@ -137,17 +137,26 @@ RigCompletionData::CompletionType RicMswPerforation::completionType() const
 ///
 //--------------------------------------------------------------------------------------------------
 RicMswValve::RicMswValve(const QString& label,
-                         size_t         index /*= cvf::UNDEFINED_SIZE_T*/,
-                         int            branchNumber /*= cvf::UNDEFINED_INT*/)
-    : RicMswCompletion(label, index, branchNumber)
+                         const RimWellPathValve* wellPathValve)
+    : RicMswCompletion(label)
+    , m_wellPathValve(wellPathValve)
 {
 }
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-RicMswICD::RicMswICD(const QString& label, size_t index /*= cvf::UNDEFINED_SIZE_T*/, int branchNumber /*= cvf::UNDEFINED_INT*/)
-    : RicMswValve(label, index, branchNumber)
+const RimWellPathValve* RicMswValve::wellPathValve() const
+{
+    return m_wellPathValve;
+}
+
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+RicMswICD::RicMswICD(const QString& label, const RimWellPathValve* wellPathValve)
+    : RicMswValve(label, wellPathValve)
     , m_flowCoefficient(0.0)
     , m_area(0.0)
 {
@@ -188,10 +197,8 @@ void RicMswICD::setArea(double icdArea)
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-RicMswFishbonesICD::RicMswFishbonesICD(const QString& label,
-                                       size_t         index /*= cvf::UNDEFINED_SIZE_T*/,
-                                       int            branchNumber /*= cvf::UNDEFINED_INT*/)
-    : RicMswICD(label, index, branchNumber)
+RicMswFishbonesICD::RicMswFishbonesICD(const QString& label, const RimWellPathValve* wellPathValve)
+    : RicMswICD(label, wellPathValve)
 {
 }
 
@@ -206,10 +213,9 @@ RigCompletionData::CompletionType RicMswFishbonesICD::completionType() const
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-RicMswPerforationICD::RicMswPerforationICD(const QString& label,
-                                           size_t         index /*= cvf::UNDEFINED_SIZE_T*/,
-                                           int            branchNumber /*= cvf::UNDEFINED_INT*/)
-    : RicMswICD(label, index, branchNumber)
+RicMswPerforationICD::RicMswPerforationICD(const QString&          label,
+                                           const RimWellPathValve* wellPathValve)
+    : RicMswICD(label, wellPathValve)
 {
 }
 
@@ -224,10 +230,26 @@ RigCompletionData::CompletionType RicMswPerforationICD::completionType() const
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-RicMswPerforationAICD::RicMswPerforationAICD(const QString& label,
-                                             size_t         index /*= cvf::UNDEFINED_SIZE_T*/,
-                                             int            branchNumber /*= cvf::UNDEFINED_INT*/)
-    : RicMswValve(label, index, branchNumber), m_valid(false), m_deviceOpen(false)
+RicMswPerforationICV::RicMswPerforationICV(const QString&          label,
+                                           const RimWellPathValve* wellPathValve)
+    : RicMswICD(label, wellPathValve)
+{
+}
+
+//-------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+RigCompletionData::CompletionType RicMswPerforationICV::completionType() const
+{
+    return RigCompletionData::PERFORATION_ICV;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+RicMswPerforationAICD::RicMswPerforationAICD(const QString&          label,
+                                             const RimWellPathValve* wellPathValve)
+    : RicMswValve(label, wellPathValve)
 {
 }
 

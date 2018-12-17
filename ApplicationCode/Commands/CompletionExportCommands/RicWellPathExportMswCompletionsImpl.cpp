@@ -331,7 +331,7 @@ void RicWellPathExportMswCompletionsImpl::generateWelsegsTable(RifEclipseDataTab
     {
         generateWelsegsSegments(formatter, exportInfo, {RigCompletionData::FISHBONES_ICD, RigCompletionData::FISHBONES});
         generateWelsegsSegments(formatter, exportInfo, {RigCompletionData::FRACTURE});
-        generateWelsegsSegments(formatter, exportInfo, {RigCompletionData::PERFORATION_ICD, RigCompletionData::PERFORATION_AICD});
+        generateWelsegsSegments(formatter, exportInfo, {RigCompletionData::PERFORATION_ICD, RigCompletionData::PERFORATION_ICV, RigCompletionData::PERFORATION_AICD});
     }
 
     formatter.tableCompleted();
@@ -360,6 +360,7 @@ void RicWellPathExportMswCompletionsImpl::generateWelsegsSegments(
 
                 if (completion->completionType() == RigCompletionData::FISHBONES_ICD ||
                     completion->completionType() == RigCompletionData::PERFORATION_ICD ||
+                    completion->completionType() == RigCompletionData::PERFORATION_ICV ||
                     completion->completionType() == RigCompletionData::PERFORATION_AICD) // Found ICD
                 {
                     if (!completion->subSegments().empty())
@@ -439,7 +440,9 @@ void RicWellPathExportMswCompletionsImpl::generateWelsegsCompletionCommentHeader
         formatter.comment("Diam: MSW - Tubing Radius");
         formatter.comment("Rough: MSW - Open Hole Roughness Factor");
     }
-    else if (completionType == RigCompletionData::PERFORATION_ICD || completionType == RigCompletionData::PERFORATION_AICD)
+    else if (completionType == RigCompletionData::PERFORATION_ICD ||
+             completionType == RigCompletionData::PERFORATION_ICV ||
+             completionType == RigCompletionData::PERFORATION_AICD)
     {
         formatter.comment("Perforation Valve Segments");
         formatter.comment("Diam: MSW - Tubing Radius");
@@ -486,6 +489,7 @@ void RicWellPathExportMswCompletionsImpl::generateCompsegTables(RifEclipseDataTa
     {
         std::set<RigCompletionData::CompletionType> perforationTypes = {RigCompletionData::PERFORATION,
                                                                         RigCompletionData::PERFORATION_ICD,
+                                                                        RigCompletionData::PERFORATION_ICV,
                                                                         RigCompletionData::PERFORATION_AICD };
         generateCompsegTable(formatter, exportInfo, false, perforationTypes);
         if (exportInfo.hasSubGridIntersections())
@@ -629,7 +633,8 @@ void RicWellPathExportMswCompletionsImpl::generateWsegvalvTable(RifEclipseDataTa
         for (std::shared_ptr<RicMswCompletion> completion : location->completions())
         {
             if (completion->completionType() == RigCompletionData::FISHBONES_ICD ||
-                completion->completionType() == RigCompletionData::PERFORATION_ICD)
+                completion->completionType() == RigCompletionData::PERFORATION_ICD ||
+                completion->completionType() == RigCompletionData::PERFORATION_ICV)
             {
                 if (!foundValve)
                 {
@@ -645,13 +650,15 @@ void RicWellPathExportMswCompletionsImpl::generateWsegvalvTable(RifEclipseDataTa
                     foundValve = true;
                 }
                 if (completion->completionType() == RigCompletionData::FISHBONES_ICD ||
-                    completion->completionType() == RigCompletionData::PERFORATION_ICD)
+                    completion->completionType() == RigCompletionData::PERFORATION_ICD ||
+                    completion->completionType() == RigCompletionData::PERFORATION_ICV)
                 {
                     std::shared_ptr<RicMswICD> icd = std::static_pointer_cast<RicMswICD>(completion);
                     if (!icd->subSegments().empty())
                     {
                         CVF_ASSERT(icd->subSegments().size() == 1u);
-                        if (icd->completionType() == RigCompletionData::PERFORATION_ICD)
+                        if (icd->completionType() == RigCompletionData::PERFORATION_ICD ||
+                            icd->completionType() == RigCompletionData::PERFORATION_ICV)
                         {
                             formatter.comment(icd->label());
                         }
@@ -841,7 +848,7 @@ RicMswExportInfo RicWellPathExportMswCompletionsImpl::generateFishbonesMswExport
                 if (ssi == 0)
                 {
                     // Add completion for ICD
-                    std::shared_ptr<RicMswFishbonesICD> icdCompletion(new RicMswFishbonesICD(QString("ICD")));
+                    std::shared_ptr<RicMswFishbonesICD> icdCompletion(new RicMswFishbonesICD(QString("ICD"), nullptr));
                     std::shared_ptr<RicMswSubSegment>   icdSegment(new RicMswSubSegment(subEndMD, subEndMD + 0.1, subEndTVD, subEndTVD));
                     icdCompletion->setFlowCoefficient(subs->icdFlowCoefficient());
                     double icdOrificeRadius = subs->icdOrificeDiameter(unitSystem) / 2;
@@ -1043,7 +1050,8 @@ RicMswExportInfo RicWellPathExportMswCompletionsImpl::generatePerforationsMswExp
         subSegIntersections, perforationIntervals, wellPath, timeStep, eclipseCase, &foundSubGridIntersections);
 
     assignSuperValveCompletions(mainBoreSegments, perforationIntervals);
-    assignValveContributionsToSuperValves(mainBoreSegments, perforationIntervals, unitSystem);
+    assignValveContributionsToSuperICVs(mainBoreSegments, perforationIntervals, unitSystem);
+    assignValveContributionsToSuperICDsOrAICDs(mainBoreSegments, perforationIntervals, unitSystem);
     moveIntersectionsToSuperValves(mainBoreSegments);
 
     for (std::shared_ptr<RicMswSegment> segment : mainBoreSegments)
@@ -1110,11 +1118,10 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
     {
         std::shared_ptr<RicMswSegment> segment = mainBoreSegments[nMainSegment];
 
-        std::shared_ptr<RicMswPerforationICD> superICV;
+        std::shared_ptr<RicMswPerforationICV> superICV;
         std::shared_ptr<RicMswPerforationICD> superICD;
         std::shared_ptr<RicMswPerforationAICD> superAICD;
 
-        double totalICVOverlap = 0.0;
         double totalICDOverlap = 0.0;
         double totalAICDOverlap = 0.0;
 
@@ -1140,22 +1147,29 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
 
                     if (segment->startMD() <= valveMD && valveMD < segment->endMD())
                     {
-                        QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
-                        std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(valveMD, valveMD + 0.1, 0.0, 0.0));
 
                         if (valve->componentType() == RiaDefines::AICD)
                         {
-                            superAICD = std::make_shared<RicMswPerforationAICD>(valveLabel);
+                            QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
+                            std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(valveMD, valveMD + 0.1, 0.0, 0.0));
+
+                            superAICD = std::make_shared<RicMswPerforationAICD>(valveLabel, valve);
                             superAICD->addSubSegment(subSegment);
                         }
                         else if (valve->componentType() == RiaDefines::ICD)
                         {
-                            superICD = std::make_shared<RicMswPerforationICD>(valveLabel);
+                            QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
+                            std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(valveMD, valveMD + 0.1, 0.0, 0.0));
+
+                            superICD = std::make_shared<RicMswPerforationICD>(valveLabel, valve);
                             superICD->addSubSegment(subSegment);
                         }
                         else if (valve->componentType() == RiaDefines::ICV)
                         {
-                            superICV = std::make_shared<RicMswPerforationICD>(valveLabel);
+                            QString valveLabel = QString("ICV %1 at segment #%2").arg(valve->name()).arg(nMainSegment + 2);
+                            std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(valveMD, valveMD + 0.1, 0.0, 0.0));
+
+                            superICV = std::make_shared<RicMswPerforationICV>(valveLabel, valve);
                             superICV->addSubSegment(subSegment);
                         }
                     }
@@ -1163,14 +1177,14 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
                     {
                         QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
                         std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(overlapStart, overlapStart + 0.1, 0.0, 0.0));
-                        superICD = std::make_shared<RicMswPerforationICD>(valveLabel);
+                        superICD = std::make_shared<RicMswPerforationICD>(valveLabel, valve);
                         superICD->addSubSegment(subSegment);
                     }
                     else if (overlap > 0.0 && (valve->componentType() == RiaDefines::AICD && !superAICD))
                     {
                         QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
                         std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(overlapStart, overlapStart + 0.1, 0.0, 0.0));
-                        superAICD = std::make_shared<RicMswPerforationAICD>(valveLabel);
+                        superAICD = std::make_shared<RicMswPerforationAICD>(valveLabel, valve);
                         superAICD->addSubSegment(subSegment);
                     }
 
@@ -1182,15 +1196,11 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
                     {
                         totalICDOverlap += overlap;
                     }
-                    else if (valve->componentType() == RiaDefines::ICV)
-                    {
-                        totalICVOverlap += overlap;
-                    }
                 }
             }
         }
 
-        if (totalICVOverlap > 0.0)
+        if (superICV)
         {
             segment->addCompletion(superICV);
         }
@@ -1211,10 +1221,73 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
     }
 }
 
+
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-void RicWellPathExportMswCompletionsImpl::assignValveContributionsToSuperValves(
+void RicWellPathExportMswCompletionsImpl::assignValveContributionsToSuperICVs(
+    const std::vector<std::shared_ptr<RicMswSegment>>& mainBoreSegments,
+    const std::vector<const RimPerforationInterval*>&  perforationIntervals,
+    RiaEclipseUnitTools::UnitSystem                    unitSystem)
+{
+    std::map<const RimWellPathValve*, std::shared_ptr<RicMswPerforationICV>>               icvCompletionMap;
+    std::map<std::shared_ptr<RicMswPerforationICV>, std::shared_ptr<RicMswICDAccumulator>> icvAccumulatorMap;
+
+    for (std::shared_ptr<RicMswSegment> segment : mainBoreSegments)
+    {
+        for (auto completion : segment->completions())
+        {
+            std::shared_ptr<RicMswPerforationICV> icv = std::dynamic_pointer_cast<RicMswPerforationICV>(completion);
+            if (icv)
+            {
+                icvCompletionMap[icv->wellPathValve()] = icv;
+                icvAccumulatorMap[icv]                 = std::make_shared<RicMswICDAccumulator>(unitSystem);
+            }
+        }
+    }
+
+    for (std::shared_ptr<RicMswSegment> segment : mainBoreSegments)
+    {
+        for (const RimPerforationInterval* interval : perforationIntervals)
+        {
+            if (!interval->isChecked()) continue;
+
+            std::vector<const RimWellPathValve*> perforationValves;
+            interval->descendantsIncludingThisOfType(perforationValves);
+
+            for (const RimWellPathValve* valve : perforationValves)
+            {
+                if (!valve->isChecked()) continue;
+                if (valve->componentType() != RiaDefines::ICV) continue;
+
+                std::shared_ptr<RicMswPerforationICV> icvCompletion  = icvCompletionMap[valve];
+                std::shared_ptr<RicMswICDAccumulator> icvAccumulator = icvAccumulatorMap[icvCompletion];
+
+                CVF_ASSERT(icvCompletion && icvAccumulator);
+
+                std::pair<double, double> valveSegment = valve->valveSegments().front();
+                double                    valveSegmentLength = valveSegment.second - valveSegment.first;
+                double                    overlapStart       = std::max(valveSegment.first, segment->startMD());
+                double                    overlapEnd         = std::min(valveSegment.second, segment->endMD());
+                double                    overlap            = std::max(0.0, overlapEnd - overlapStart);
+
+                if (overlap > 0.0)
+                {
+                    icvAccumulator->accumulateValveParameters(valve, 0, overlap / valveSegmentLength);
+                }
+            }
+        }
+    }
+    for (auto icvAccumulatorPair : icvAccumulatorMap)
+    {
+        icvAccumulatorPair.second->applyToSuperValve(icvAccumulatorPair.first);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void RicWellPathExportMswCompletionsImpl::assignValveContributionsToSuperICDsOrAICDs(
     const std::vector<std::shared_ptr<RicMswSegment>>& mainBoreSegments,
     const std::vector<const RimPerforationInterval*>&  perforationIntervals,
     RiaEclipseUnitTools::UnitSystem                    unitSystem)
@@ -1232,8 +1305,6 @@ void RicWellPathExportMswCompletionsImpl::assignValveContributionsToSuperValves(
                 break;
             }
         }
-
-        if (!superValve) continue;
 
         std::shared_ptr<RicMswValveAccumulator> accumulator;
         if (std::dynamic_pointer_cast<const RicMswPerforationICD>(superValve))
@@ -1307,7 +1378,8 @@ void RicWellPathExportMswCompletionsImpl::moveIntersectionsToSuperValves(MainBor
         std::vector<std::shared_ptr<RicMswCompletion>> perforations;
         for (auto completionPtr : segmentPtr->completions())
         {
-            if (completionPtr->completionType() == RigCompletionData::PERFORATION_ICD ||
+            if (completionPtr->completionType() == RigCompletionData::PERFORATION_ICV ||
+                completionPtr->completionType() == RigCompletionData::PERFORATION_ICD ||
                 completionPtr->completionType() == RigCompletionData::PERFORATION_AICD)
             {
                 superValve = completionPtr;
