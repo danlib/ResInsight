@@ -1110,9 +1110,11 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
     {
         std::shared_ptr<RicMswSegment> segment = mainBoreSegments[nMainSegment];
 
+        std::shared_ptr<RicMswPerforationICD> superICV;
         std::shared_ptr<RicMswPerforationICD> superICD;
         std::shared_ptr<RicMswPerforationAICD> superAICD;
 
+        double totalICVOverlap = 0.0;
         double totalICDOverlap = 0.0;
         double totalAICDOverlap = 0.0;
 
@@ -1127,7 +1129,6 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
             {
                 if (!valve->isChecked()) continue;
 
-                bool isAicd = valve->componentType() == RiaDefines::AICD;
                 for (size_t nSubValve = 0u; nSubValve < valve->valveLocations().size(); ++nSubValve)
                 {
                     double valveMD = valve->valveLocations()[nSubValve];
@@ -1142,25 +1143,30 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
                         QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
                         std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(valveMD, valveMD + 0.1, 0.0, 0.0));
 
-                        if (isAicd)
+                        if (valve->componentType() == RiaDefines::AICD)
                         {
                             superAICD = std::make_shared<RicMswPerforationAICD>(valveLabel);
                             superAICD->addSubSegment(subSegment);
                         }
-                        else
+                        else if (valve->componentType() == RiaDefines::ICD)
                         {
                             superICD = std::make_shared<RicMswPerforationICD>(valveLabel);
                             superICD->addSubSegment(subSegment);
                         }
+                        else if (valve->componentType() == RiaDefines::ICV)
+                        {
+                            superICV = std::make_shared<RicMswPerforationICD>(valveLabel);
+                            superICV->addSubSegment(subSegment);
+                        }
                     }
-                    else if (overlap > 0.0 && (!isAicd && !superICD))
+                    else if (overlap > 0.0 && (valve->componentType() == RiaDefines::ICD && !superICD))
                     {
                         QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
                         std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(overlapStart, overlapStart + 0.1, 0.0, 0.0));
                         superICD = std::make_shared<RicMswPerforationICD>(valveLabel);
                         superICD->addSubSegment(subSegment);
                     }
-                    else if (overlap > 0.0 && (isAicd && !superAICD))
+                    else if (overlap > 0.0 && (valve->componentType() == RiaDefines::AICD && !superAICD))
                     {
                         QString valveLabel = QString("%1 #%2").arg("Combined Valve for segment").arg(nMainSegment + 2);
                         std::shared_ptr<RicMswSubSegment> subSegment(new RicMswSubSegment(overlapStart, overlapStart + 0.1, 0.0, 0.0));
@@ -1168,27 +1174,38 @@ void RicWellPathExportMswCompletionsImpl::assignSuperValveCompletions(
                         superAICD->addSubSegment(subSegment);
                     }
 
-                    if (isAicd)
+                    if (valve->componentType() == RiaDefines::AICD)
                     {
                         totalAICDOverlap += overlap;
                     }
-                    else
+                    else if (valve->componentType() == RiaDefines::ICD)
                     {
                         totalICDOverlap += overlap;
+                    }
+                    else if (valve->componentType() == RiaDefines::ICV)
+                    {
+                        totalICVOverlap += overlap;
                     }
                 }
             }
         }
 
-        if (totalICDOverlap > 0.0 || totalAICDOverlap > 0.0)
+        if (totalICVOverlap > 0.0)
         {
-            if (totalAICDOverlap > totalICDOverlap)
+            segment->addCompletion(superICV);
+        }
+        else
+        {
+            if (totalICDOverlap > 0.0 || totalAICDOverlap > 0.0)
             {
-                segment->addCompletion(superAICD);
-            }
-            else
-            {
-                segment->addCompletion(superICD);
+                if (totalAICDOverlap > totalICDOverlap)
+                {
+                    segment->addCompletion(superAICD);
+                }
+                else
+                {
+                    segment->addCompletion(superICD);
+                }
             }
         }
     }
