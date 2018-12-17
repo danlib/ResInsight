@@ -690,6 +690,12 @@ void RicWellPathExportMswCompletionsImpl::generateWsegAicdTable(RifEclipseDataTa
         {
             if (completion->completionType() == RigCompletionData::PERFORATION_AICD)
             {
+                std::shared_ptr<RicMswPerforationAICD> aicd = std::static_pointer_cast<RicMswPerforationAICD>(completion);
+                if (!aicd->isValid())
+                {
+                    RiaLogging::error(QString("Export AICD Valve (%1): Valve is invalid. At least one required template parameter is not set.").arg(aicd->label()));
+                }
+
                 if (!foundValve)
                 {
                     std::vector<QString> columnDescriptions =
@@ -731,8 +737,7 @@ void RicWellPathExportMswCompletionsImpl::generateWsegAicdTable(RifEclipseDataTa
 
                     foundValve = true;
                 }
-                {
-                    std::shared_ptr<RicMswPerforationAICD> aicd = std::static_pointer_cast<RicMswPerforationAICD>(completion);
+                {                    
                     if (!aicd->subSegments().empty())
                     {
                         CVF_ASSERT(aicd->subSegments().size() == 1u);
