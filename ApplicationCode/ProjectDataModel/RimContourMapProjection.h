@@ -49,7 +49,7 @@ public:
     struct ContourPolygon
     {
         std::vector<cvf::Vec3d> vertices;
-        cvf::String label;
+        double value;
     };
 
     enum ResultAggregationEnum
@@ -72,7 +72,8 @@ public:
     RimContourMapProjection();
     ~RimContourMapProjection() override;
 
-    std::vector<cvf::Vec3d>      generateVertices();
+    std::vector<cvf::Vec4d>      generateTriangles() const;
+    std::vector<cvf::Vec3d>      generateVertices() const;
     void                         generateContourPolygons();
     std::vector<cvf::Vec3d>      generatePickPointPolygon();
     void                         generateResults();
