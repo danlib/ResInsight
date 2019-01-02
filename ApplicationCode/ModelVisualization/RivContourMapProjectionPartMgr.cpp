@@ -241,7 +241,7 @@ std::vector<std::vector<cvf::ref<cvf::Drawable>>> RivContourMapProjectionPartMgr
             if (contourPolygons[i][j].vertices.empty()) continue;
 
             size_t nVertices = contourPolygons[i][j].vertices.size();
-            size_t nLabels = m_contourMapProjection->showContourLabels() ? std::max((size_t)1, nVertices / 150u) : 0u;
+            size_t nLabels = m_contourMapProjection->showContourLabels() ? std::max((size_t)1, nVertices / 100u) : 0u;
             for (size_t l = 0; l < nLabels; ++l)
             {
                 cvf::ref<cvf::DrawableText> label = createTextLabel(textColor, backgroundColor);
@@ -264,12 +264,10 @@ std::vector<std::vector<cvf::ref<cvf::Drawable>>> RivContourMapProjectionPartMgr
                 }
             }
             cvf::ref<cvf::Vec3fArray> vertexArray = new cvf::Vec3fArray(nVertices);
-            for (size_t v = 0; v < nVertices; v += 2)
+            for (size_t v = 0; v < nVertices; ++v)
             {
                 cvf::Vec3d displayVertex1 = displayCoordTransform->transformToDisplayCoord(contourPolygons[i][j].vertices[v]);
-                cvf::Vec3d displayVertex2 = displayCoordTransform->transformToDisplayCoord(contourPolygons[i][j].vertices[v + 1]);
                 (*vertexArray)[v]     = cvf::Vec3f(displayVertex1);
-                (*vertexArray)[v + 1] = cvf::Vec3f(displayVertex2);
             }
 
             std::vector<cvf::uint> indices;
@@ -279,7 +277,7 @@ std::vector<std::vector<cvf::ref<cvf::Drawable>>> RivContourMapProjectionPartMgr
                 indices.push_back(k);
             }
 
-            cvf::ref<cvf::PrimitiveSetIndexedUInt> indexedUInt = new cvf::PrimitiveSetIndexedUInt(cvf::PrimitiveType::PT_LINES);
+            cvf::ref<cvf::PrimitiveSetIndexedUInt> indexedUInt = new cvf::PrimitiveSetIndexedUInt(cvf::PrimitiveType::PT_LINE_LOOP);
             cvf::ref<cvf::UIntArray>               indexArray = new cvf::UIntArray(indices);
             indexedUInt->setIndices(indexArray.p());
 

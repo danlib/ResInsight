@@ -115,6 +115,7 @@ public:
     void                         setPickPoint(cvf::Vec2d pickedPoint);
 
 protected:
+    void   smoothPolygonLoops(ContourPolygons* contourPolygons);
     double interpolateValue(const cvf::Vec2d& gridPosition2d) const;
 
     void fieldChangedByUi(const caf::PdmFieldHandle* changedField, const QVariant& oldValue, const QVariant& newValue) override;
@@ -167,6 +168,7 @@ private:
     RimEclipseResultCase*           eclipseCase() const;
     RimContourMapView*              view() const;
 
+    double                          gridEdgeOffset() const;
 protected:
     caf::PdmField<double>                               m_relativeSampleSpacing;
     caf::PdmField<ResultAggregation>                    m_resultAggregation;
@@ -192,4 +194,6 @@ protected:
     cvf::BoundingBox                                    m_fullBoundingBox;
     double                                              m_sampleSpacing;
     std::vector<ContourPolygons>                        m_contourPolygons;
+private:
+    
 };

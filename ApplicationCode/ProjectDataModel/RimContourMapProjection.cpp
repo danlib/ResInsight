@@ -145,26 +145,20 @@ void RimContourMapProjection::generateContourPolygons()
             int nContourLevels = static_cast<int>(contourLevels.size());
             if (nContourLevels > 2)
             {
-                std::vector<double> fudgedContourLevels = contourLevels;
-                if (legendConfig()->mappingMode() == RimRegularLegendConfig::LINEAR_CONTINUOUS || legendConfig()->mappingMode() == RimRegularLegendConfig::LINEAR_DISCRETE)
-                {
-                    // Slight fudge to avoid very jagged contour lines at the very edge
-                    // Shift the contour levels inwards.
-                    fudgedContourLevels[0] += (contourLevels[1] - contourLevels[0]) * 0.1;
-                    fudgedContourLevels[nContourLevels - 1] -= (contourLevels[nContourLevels - 1] - contourLevels[nContourLevels - 2]) * 0.1;
-                }
                 std::vector<caf::ContourLines::ClosedPolygons> closedContourLines =
-                    caf::ContourLines::create(m_aggregatedVertexResults, xVertexPositions(), yVertexPositions(), fudgedContourLevels);
+                    caf::ContourLines::create(m_aggregatedVertexResults, xVertexPositions(), yVertexPositions(), contourLevels);
 
                 contourPolygons.resize(closedContourLines.size());
+
                 for (size_t i = 0; i < closedContourLines.size(); ++i)
                 {
                     for (size_t j = 0; j < closedContourLines[i].size(); ++j)
                     {
                         ContourPolygon contourPolygon;
                         contourPolygon.label = cvf::String(contourLevels[i]);
-                        contourPolygon.vertices.reserve(closedContourLines[i][j].size());
-                        for (size_t k = 0; k < closedContourLines[i][j].size(); ++k)
+                        contourPolygon.vertices.reserve(closedContourLines[i][j].size() / 2);
+                        
+                        for (size_t k = 0; k < closedContourLines[i][j].size(); k += 2)
                         {
                             cvf::Vec3d contourPoint3d = cvf::Vec3d(closedContourLines[i][j][k], m_fullBoundingBox.min().z());
                             contourPolygon.vertices.push_back(contourPoint3d);
@@ -172,6 +166,8 @@ void RimContourMapProjection::generateContourPolygons()
                         contourPolygons[i].push_back(contourPolygon);
                     }
                 }
+
+                smoothPolygonLoops(&contourPolygons[0]);
             }
         }
     }
@@ -585,7 +581,7 @@ bool RimContourMapProjection::checkForMapIntersection(const cvf::Vec3d& localPoi
     CVF_TIGHT_ASSERT(contourMapPoint);
     CVF_TIGHT_ASSERT(valueAtPoint);
 
-    cvf::Vec3d localPos3d(localPoint3d.x() + m_sampleSpacing, localPoint3d.y() + m_sampleSpacing, 0.0);
+    cvf::Vec3d localPos3d(localPoint3d.x() + gridEdgeOffset(), localPoint3d.y() + gridEdgeOffset(), 0.0);
     cvf::Vec2d gridPos2d(localPos3d.x(), localPos3d.y());
     cvf::Vec2d gridorigin(m_fullBoundingBox.min().x(), m_fullBoundingBox.min().y());
 
@@ -598,6 +594,37 @@ bool RimContourMapProjection::checkForMapIntersection(const cvf::Vec3d& localPoi
         return true;
     }
     return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void RimContourMapProjection::smoothPolygonLoops(ContourPolygons* contourPolygons)
+{
+    CVF_ASSERT(contourPolygons);
+    for (size_t i = 0; i < contourPolygons->size(); ++i)
+    {
+        ContourPolygon& polygon = contourPolygons->at(i);
+        std::vector<cvf::Vec3d> newVertices;
+        newVertices.reserve(polygon.vertices.size());
+        newVertices.push_back(polygon.vertices.front());
+        for (size_t v = 1; v < polygon.vertices.size(); ++v)
+        {
+            if (v < polygon.vertices.size() - 1)
+            {
+                cvf::Vec3d e1 = (polygon.vertices[v] - newVertices.back()).getNormalized();
+                cvf::Vec3d e2 = (polygon.vertices[v + 1] - polygon.vertices[v]).getNormalized();
+                if (std::fabs(e1 * e2) < 0.2)
+                {
+                    newVertices.push_back(polygon.vertices[v + 1]);
+                    ++v;
+                    continue;
+                }
+            }
+            newVertices.push_back(polygon.vertices[v]);
+        }
+        polygon.vertices.swap(newVertices);
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1347,7 +1374,7 @@ void RimContourMapProjection::updateGridInformation()
     m_mainGrid        = eclipseCase()->eclipseCaseData()->mainGrid();
     m_sampleSpacing   = m_relativeSampleSpacing * m_mainGrid->characteristicIJCellSize();
     m_fullBoundingBox = eclipseCase()->activeCellsBoundingBox();
-    m_fullBoundingBox.expand(m_sampleSpacing * 2.0);
+    m_fullBoundingBox.expand(gridEdgeOffset() * 2.0);
     m_mapSize         = calculateMapSize();
 
     // Re-jig max point to be an exact multiple of cell size
@@ -1389,4 +1416,12 @@ RimContourMapView* RimContourMapProjection::view() const
     RimContourMapView* view = nullptr;
     firstAncestorOrThisOfTypeAsserted(view);
     return view;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+double RimContourMapProjection::gridEdgeOffset() const
+{
+    return m_sampleSpacing * 2.0;
 }
