@@ -138,10 +138,10 @@ cvf::ref<cvf::DrawableText> RivContourMapProjectionPartMgr::createTextLabel(cons
     labelDrawable->setFont(font.p());
     labelDrawable->setCheckPosVisible(true);
     labelDrawable->setUseDepthBuffer(true);
-    labelDrawable->setDrawBorder(false);
-    labelDrawable->setDrawBackground(false);
+    labelDrawable->setDrawBorder(true);
+    labelDrawable->setDrawBackground(true);
     labelDrawable->setBackgroundColor(backgroundColor);
-    labelDrawable->setVerticalAlignment(cvf::TextDrawer::BASELINE);
+    labelDrawable->setVerticalAlignment(cvf::TextDrawer::CENTER);
     labelDrawable->setTextColor(textColor);
 
     return labelDrawable;
@@ -218,11 +218,15 @@ std::vector<std::vector<cvf::ref<cvf::Drawable>>> RivContourMapProjectionPartMgr
             size_t nLabels = m_contourMapProjection->showContourLabels() ? std::max((size_t)1, nVertices / 100u) : 0u;
             for (size_t l = 0; l < nLabels; ++l)
             {
+                size_t nVertex = (nVertices * l) / nLabels;
                 cvf::ref<cvf::DrawableText> label = createTextLabel(textColor, backgroundColor);
-                cvf::Vec3d globalVertex = contourPolygons[i][j].vertices[(nVertices * l) / nLabels] + m_contourMapProjection->origin3d();
+                cvf::Vec3d globalVertex1 = contourPolygons[i][j].vertices[nVertex] + m_contourMapProjection->origin3d();
+                cvf::Vec3d globalVertex2 = contourPolygons[i][j].vertices[nVertex + 1 % nVertices] + m_contourMapProjection->origin3d();
+                cvf::Vec3d segment = globalVertex2 - globalVertex1;
+                cvf::Vec3d globalVertex = 0.5 * (globalVertex1 + globalVertex2);
                 cvf::Vec3f displayVertex(displayCoordTransform->transformToDisplayCoord(globalVertex));
                 displayVertex.z() += 3.0f;
-                label->addText(cvf::String(contourPolygons[i][j].value), displayVertex);
+                label->addText(cvf::String(contourPolygons[i][j].value), displayVertex, cvf::Vec3f(segment.getNormalized()));
                 bool overlaps = false;
                 cvf::BoundingBox bbox = label->boundingBox();
                 for (cvf::ref<cvf::Drawable> existingLabel : labelDrawables)

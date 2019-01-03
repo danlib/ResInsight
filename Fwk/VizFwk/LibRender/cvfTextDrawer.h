@@ -72,8 +72,8 @@ public:
     TextDrawer(Font* font);
     virtual ~TextDrawer();
 
-    void    addText(const String& text, const Vec2f& pos);
-    void    addText(const String& text, const Vec3f& pos);
+    void    addText(const String& text, const Vec2f& pos, const Vec2f& dir = Vec2f::X_AXIS);
+    void    addText(const String& text, const Vec3f& pos, const Vec3f& dir = Vec3f::X_AXIS);
     void    removeAllTexts();
 
     void    setVerticalAlignment(Alignment alignment);
@@ -104,6 +104,7 @@ private:
     ref<Font>           m_font;             // Font used to draw text
     std::vector<Vec3f>  m_positions;        // Coordinate of the lower left corner of where to place each individual text strings
     std::vector<String> m_texts;            // Text strings to be drawn
+    std::vector<Vec3f>  m_directions;        // Clockwise rotations around the position in radians
     
     bool                m_drawBackground;
     bool                m_drawBorder;

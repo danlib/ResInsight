@@ -197,6 +197,5 @@ protected:
     cvf::BoundingBox                                    m_fullBoundingBox;
     double                                              m_sampleSpacing;
     std::vector<ContourPolygons>                        m_contourPolygons;
-private:
-    
+
 };

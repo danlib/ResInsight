@@ -65,7 +65,7 @@ public:
     void                        setFont(Font* font);
     ref<Font>                   font() const;
 
-    void                        addText(const String& text, const Vec3f& position);
+    void                        addText(const String& text, const Vec3f& position, const Vec3f& direction = Vec3f::X_AXIS);
 
     void                        setVerticalAlignment(TextDrawer::Alignment alignment);
     void                        setTextColor(const Color3f& color);
@@ -103,6 +103,8 @@ private:
 private:
     std::vector<Vec3f>          m_positions;        // Coordinate of the lower left corner of where to place the text in pixel coordinates
     std::vector<String>         m_texts;            // Text strings to be drawn
+    std::vector<Vec3f>          m_directions;       // Text direction
+
     ref<Font>                   m_font;             // Font used to draw text
     
     TextDrawer::Alignment       m_verticalAlignment;
