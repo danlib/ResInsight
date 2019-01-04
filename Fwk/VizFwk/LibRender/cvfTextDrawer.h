@@ -39,12 +39,15 @@
 
 #include "cvfObject.h"
 #include "cvfString.h"
+#include "cvfVector2.h"
 #include "cvfVector3.h"
 #include "cvfColor3.h"
 
+#include <array>
 
 namespace cvf {
 
+class Glyph; 
 class Font;
 class ShaderProgram;
 class MatrixState;
@@ -96,7 +99,10 @@ public:
     void    renderSoftware(OpenGLContext* oglContext, const MatrixState& matrixState);
 
     static bool pickText(const Vec3f& pickCoord2d, const String& text, const Vec3f& pos, Font* font);
+    
+    static short calculateVerticalAlignmentOffset(Font& font, Alignment alignment);
 
+    static std::array<Vec3f, 4> textCorners(const Glyph& glyph, const Vec2f& textStart, const Vec2f& textExtent, short verticalAlignment, const Vec3f& textDirection, float marginX = 0.0, float marginY = 0.0);
 private:
     void doRender2d(OpenGLContext* oglContext, const MatrixState& matrixState, bool softwareRendering);
 

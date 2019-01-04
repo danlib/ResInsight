@@ -66,7 +66,7 @@ public:
     ref<Font>                   font() const;
 
     void                        addText(const String& text, const Vec3f& position, const Vec3f& direction = Vec3f::X_AXIS);
-
+    size_t                      numberOfTexts() const;
     void                        setVerticalAlignment(TextDrawer::Alignment alignment);
     void                        setTextColor(const Color3f& color);
     void                        setBackgroundColor(const Color3f& color);
@@ -87,6 +87,7 @@ public:
     virtual size_t              faceCount() const;
 
     virtual BoundingBox         boundingBox() const;
+    BoundingBox                 textBoundingBox(const String& text, const Vec3f& position, const Vec3f& direction = Vec3f::X_AXIS);
 
     virtual bool                rayIntersectCreateDetail(const Ray& ray, Vec3d* intersectionPoint, ref<HitDetail>* hitDetail) const;
     bool                        rayIntersect(const Ray& ray, const Camera& camera, Vec3d* intersectionPoint);

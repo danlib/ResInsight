@@ -73,8 +73,8 @@ Glyph::Glyph(wchar_t character)
     m_horizontalAdvance(0),
     m_textureImage(new TextureImage),
     m_textureCoordinates(new FloatArray(8)),
-    m_minFilter(LINEAR),
-    m_magFilter(LINEAR)
+    m_minFilter(NEAREST),
+    m_magFilter(NEAREST)
 {
     // Lower left
     m_textureCoordinates->set(0, 0.0f);

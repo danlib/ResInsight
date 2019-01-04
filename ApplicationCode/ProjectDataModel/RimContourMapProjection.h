@@ -114,6 +114,7 @@ public:
 
     bool                         checkForMapIntersection(const cvf::Vec3d& localPoint3d, cvf::Vec2d* contourMapPoint, double* valueAtPoint) const;
     void                         setPickPoint(cvf::Vec2d globalPickPoint);
+    cvf::Vec2d                   origin2d() const;
     cvf::Vec3d                   origin3d() const;
 
 protected:
@@ -159,7 +160,6 @@ private:
     cvf::Vec2ui                     ijFromCellIndex(size_t mapIndex) const;
     cvf::Vec2ui                     ijFromLocalPos(const cvf::Vec2d& localPos2d) const;
     cvf::Vec2d                      cellCenterPosition(uint i, uint j) const;
-    cvf::Vec2d                      origin2d() const;
 
     std::vector<double>             xVertexPositions() const;
     std::vector<double>             yVertexPositions() const;

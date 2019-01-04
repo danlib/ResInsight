@@ -194,9 +194,17 @@ void DrawableText::addText(const String& text, const Vec3f& position, const Vec3
     m_positions.push_back(position);
     m_texts.push_back(text);
     m_directions.push_back(direction);
-    m_boundingBox.add(position);  
+    m_boundingBox.add(position);
 }
 
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+size_t DrawableText::numberOfTexts() const
+{
+    return m_texts.size();
+}
 
 //--------------------------------------------------------------------------------------------------
 /// Main shader based rendering path for the geometry 
@@ -269,6 +277,28 @@ BoundingBox DrawableText::boundingBox() const
     return m_boundingBox;
 }
 
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+cvf::BoundingBox
+    DrawableText::textBoundingBox(const String& text, const Vec3f& position, const Vec3f& direction /*= Vec3f::X_AXIS*/)
+{
+    ref<Glyph> glyph = m_font->getGlyph(L'A');
+    Vec2f      textExtent(m_font->textExtent(text));
+    short      verticalAlignment = TextDrawer::calculateVerticalAlignmentOffset(*m_font, m_verticalAlignment);
+    float      glyphMarginX      = 0.25f * static_cast<float>(glyph->width());
+    float      glyphMarginY      = 0.25f * static_cast<float>(glyph->height());
+
+    BoundingBox textBox;
+    std::array<Vec3f, 4> corners =
+        TextDrawer::textCorners(*glyph, cvf::Vec2f::ZERO, textExtent, verticalAlignment, direction, glyphMarginX, glyphMarginY);
+    for (const Vec3f& corner : corners)
+    {
+        textBox.add(position + corner);
+    }
+    return textBox;
+}
 
 //--------------------------------------------------------------------------------------------------
 /// 
